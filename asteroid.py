@@ -2,13 +2,29 @@ import pygame
 import random
 from pygame.math import Vector2
 from constants import *
+from CircleShape import *
 
-class Asteroid(pygame.sprite.Sprite):
+pygame.font.init()
+FONT = pygame.font.Font(None, 24)
+
+class Asteroid(CircleShape, pygame.sprite.Sprite):
     def __init__(self, size=ASTEROID_LARGE):
-        pygame.sprite.Sprite.__init__(self, *self.containers)
+        print(f"Creating new asteroid with size parameter: {size}")
+        print(f"ASTEROID_LARGE = {ASTEROID_LARGE}")
+        
         self.position = self._get_spawn_position()
+
+        if size == ASTEROID_SMALL:
+            self.radius = ASTEROID_SMALL
+        elif size == ASTEROID_MEDIUM:
+            self.radius = ASTEROID_MEDIUM
+        else:
+            self.radius = ASTEROID_LARGE
+
+        CircleShape.__init__(self, self.position.x, self.position.y, size)
+        pygame.sprite.Sprite.__init__(self, *self.containers)
+        
         self.rotation = random.uniform(0, 360)
-        self.radius = random.randint(ASTEROID_MIN_RADIUS, ASTEROID_MIN_RADIUS * 2)
         surface_multiplier = 6  # Increased from 4 to 6
         surface_size = self.radius * surface_multiplier
         self.image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
@@ -17,12 +33,7 @@ class Asteroid(pygame.sprite.Sprite):
         self.velocity = direction * ASTEROID_SPEED
         self.rotation_speed = ASTEROID_ROTATION_SPEED * random.choice([-1,1])
         self.vertices = self._generate_vertices()
-        if size == ASTEROID_SMALL:
-            self.radius = ASTEROID_SMALL
-        elif size == ASTEROID_MEDIUM:
-            self.radius = ASTEROID_MEDIUM
-        else:
-            self.radius = ASTEROID_LARGE
+       
 
 
 
@@ -99,6 +110,15 @@ class Asteroid(pygame.sprite.Sprite):
         # Update rect position
         self.rect.center = self.position
 
+    def draw(self, surface):
+        pygame.draw.circle(surface, (255, 255, 255), (int(self.position.x), int(self.position.y)), self.radius)
+    
+    # Add label
+        size_text = "Large" if self.radius == ASTEROID_LARGE else "Medium" if self.radius == ASTEROID_MEDIUM else "Small"
+        text_surface = FONT.render(f"{size_text} ({self.radius})", True, (255, 255, 255))
+        text_rect = text_surface.get_rect(center=(self.position.x, self.position.y - self.radius - 10))
+        surface.blit(text_surface, text_rect)
+
     def triangle(self):
         # Reuse your triangle vertices code here
         center = pygame.Vector2(self.radius * 1.5, self.radius * 1.5)
@@ -108,4 +128,50 @@ class Asteroid(pygame.sprite.Sprite):
         b = center - forward * self.radius - right
         c = center - forward * self.radius + right
         return [a, b, c]
+    
+    def split(self):
+        print("=== Asteroid Debug ===")
+        print(f"Asteroid radius: {self.radius}")
+        print(f"Is radius <= ASTEROID_MIN_RADIUS? {self.radius <= ASTEROID_MIN_RADIUS}")
+        print(f"Is radius == ASTEROID_LARGE? {self.radius == ASTEROID_LARGE}")
+        print(f"Is radius == ASTEROID_MEDIUM? {self.radius == ASTEROID_MEDIUM}")
+        print(f"Type of self.radius: {type(self.radius)}")
+        print(f"Type of ASTEROID_MEDIUM: {type(ASTEROID_MEDIUM)}")
+        print("====================")
+        if self.radius < ASTEROID_MIN_RADIUS:
+            return
+        self.kill()
+
+        current_pos = Vector2(self.position)
+        current_vel = Vector2(self.velocity)
+        current_radius = self.radius
+
+        
+        
+        new_size = None
+        if current_radius == ASTEROID_LARGE:
+            new_size = ASTEROID_MEDIUM
+        elif current_radius == ASTEROID_MEDIUM:
+            new_size = ASTEROID_SMALL
+        else:
+            self.kill()
+            return
+        
+        self.kill()
+        
+        random_angle = random.uniform(20,50)
+        new_vector1 = self.velocity.rotate(random_angle) * 1.2
+        new_vector2 = self.velocity.rotate(-random_angle) * 1.2
+
+        new_asteroid1 = Asteroid(new_size)
+        new_asteroid2 = Asteroid(new_size)
+
+        new_asteroid1.position = Vector2(self.position)
+        new_asteroid2.position = Vector2(self.position)
+        new_asteroid1.velocity = new_vector1
+        new_asteroid2.velocity = new_vector2
+
+
+
+        
         
